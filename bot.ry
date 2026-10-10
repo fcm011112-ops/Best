@@ -1,0 +1,106 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import CommandStart
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+BOT_TOKEN = "8788212040:AAF90YgQ20-5WvtQEmVETFIH"
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+def main_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👑 Купить подписку", callback_data="buy")],
+        [InlineKeyboardButton(text="👤 Мой профиль", callback_data="profile"),
+         InlineKeyboardButton(text="📖 Инструкция", callback_data="help")],
+        [InlineKeyboardButton(text="💬 Поддержка", callback_data="support")]
+    ])
+
+def tariffs_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎁 Тест (3 дня) — Бесплатно", callback_data="pay_free")],
+        [InlineKeyboardButton(text="🥉 1 месяц — 190 ₽", callback_data="pay_1m")],
+        [InlineKeyboardButton(text="🥈 3 месяца — 490 ₽ (-15%)", callback_data="pay_3m")],
+        [InlineKeyboardButton(text="🥇 12 месяцев — 1490 ₽ (-35%)", callback_data="pay_1y")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="main_menu")]
+    ])
+
+def back_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="◀️ Назад в меню", callback_data="main_menu")]
+    ])
+
+@dp.message(CommandStart())
+async def cmd_start(message: types.Message):
+    welcome_text = (
+        f"👋 **Салют, {message.from_user.first_name}!**\n\n"
+        f"Добро пожаловать в **Best VPN** — твой личный VIP-доступ к свободному и быстрому интернету без ограничений!\n\n"
+        f"🚀 **Почему выбирают нас:**\n"
+        f"• Высокая скорость (до 1 Гбит/с)\n"
+        f"• Обход любых блокировок\n"
+        f"• Работает на iOS, Android, Windows, macOS\n\n"
+        f"🎁 **Новичкам:** Жми кнопку «Купить подписку» и забирай тестовый период!"
+    )
+    await message.answer(welcome_text, reply_markup=main_keyboard(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "main_menu")
+async def back_to_main(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "👑 **Главное меню Best VPN**\n\nВыбери нужный раздел:",
+        reply_markup=main_keyboard(),
+        parse_mode="Markdown"
+    )
+
+@dp.callback_query(F.data == "buy")
+async def process_buy(callback: types.CallbackQuery):
+    tariffs_text = (
+        "⚡ **Выбери подходящий тариф:**\n\n"
+        "🎁 **Тест (3 дня)** — `Бесплатно` *(1 раз)*\n"
+        "🥉 **1 месяц** — `190 ₽`\n"
+        "🥈 **3 месяца** — `490 ₽` *(скидка 15%)*\n"
+        "🥇 **12 месяцев** — `1490 ₽` *(скидка 35% + VIP)*"
+    )
+    await callback.message.edit_text(tariffs_text, reply_markup=tariffs_keyboard(), parse_mode="Markdown")
+
+@dp.callback_query(F.data.startswith("pay_"))
+async def process_payment(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.answer(
+        "⚙️ *Раздел оплаты активен! Для тестирования или покупки напишите админу в поддержку.*",
+        parse_mode="Markdown"
+    )
+
+@dp.callback_query(F.data == "profile")
+async def process_profile(callback: types.CallbackQuery):
+    profile_text = (
+        f"👤 **Ваш профиль:**\n\n"
+        f"🆔 **ID:** `{callback.from_user.id}`\n"
+        f"👑 **Статус:** ❌ **Нет активной подписки**"
+    )
+    await callback.message.edit_text(profile_text, reply_markup=back_keyboard(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "help")
+async def process_help(callback: types.CallbackQuery):
+    help_text = (
+        "📖 **Инструкция по подключению:**\n\n"
+        "1. Скачай приложение (Happ / Streisand / v2rayNG)\n"
+        "2. Скопируй полученный ключ подписки\n"
+        "3. Нажми подключить и кайфуй!"
+    )
+    await callback.message.edit_text(help_text, reply_markup=back_keyboard(), parse_mode="Markdown")
+
+@dp.callback_query(F.data == "support")
+async def process_support(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "💬 **Поддержка Best VPN**\n\nПо всем вопросам пишите создателю.",
+        reply_markup=back_keyboard(),
+        parse_mode="Markdown"
+    )
+
+async def main():
+    logging.basicConfig(level=logging.INFO)
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
